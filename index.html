@@ -1,0 +1,373 @@
+
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090b18">
+<title>Q-FACE</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root{--bg:#090b18;--purple:#8b5cf6;--blue:#4776ff;--panel:rgba(255,255,255,.07);--border:rgba(255,255,255,.13)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top,#29205d,#101329 48%,var(--bg) 85%);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input{font:inherit}
+.app{max-width:600px;margin:auto;padding:calc(20px + env(safe-area-inset-top)) 16px calc(30px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:35px}
+.logo{display:flex;align-items:center;gap:11px;font-size:25px;font-weight:850;letter-spacing:1px}
+.logo-icon{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,var(--purple),var(--blue));box-shadow:0 8px 30px #7654ff44;font-size:25px}
+.pill{font-size:11px;color:#d4c8ff;border:1px solid #8b5cf655;border-radius:30px;padding:8px 10px}
+h1{font-size:36px;line-height:1.1;letter-spacing:-1.3px;margin:0 0 12px}
+.sub{color:#a8abc4;line-height:1.55;margin:0 0 24px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:24px;padding:18px;margin:15px 0;box-shadow:0 12px 40px #0002;backdrop-filter:blur(18px)}
+.status{display:flex;align-items:center;gap:9px;font-size:13px;color:#c3c6db}
+.dot{width:8px;height:8px;border-radius:50%;background:#fbbf24}
+.dot.online{background:#34d399}
+.label{display:block;font-size:13px;color:#c6c8dc;margin:16px 0 9px}
+input{width:100%;padding:14px;border-radius:14px;border:1px solid var(--border);background:#090b18aa;color:white;outline:none;margin-bottom:12px}
+input:focus{border-color:var(--purple)}
+button{cursor:pointer;color:white;border:0;touch-action:manipulation}
+.primary{background:linear-gradient(110deg,var(--purple),var(--blue));font-weight:750;box-shadow:0 8px 24px #664dff33}
+.secondary{background:#ffffff10;border:1px solid var(--border)}
+.btn{width:100%;padding:15px;border-radius:15px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.small{font-size:12px;color:#969bb9;line-height:1.55}
+#notice{color:#c4b5fd;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.video-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.video-box{position:relative;overflow:hidden;background:#050610;border:1px solid var(--border);border-radius:20px;aspect-ratio:3/4;min-width:0}
+.video-box video{width:100%;height:100%;object-fit:cover}
+.video-name{position:absolute;bottom:9px;left:9px;right:9px;background:#0009;padding:7px 9px;border-radius:10px;font-size:12px}
+.placeholder{position:absolute;inset:0;display:grid;place-content:center;gap:8px;text-align:center;padding:10px;color:#a2a6c3;font-size:13px}
+.placeholder .emoji{font-size:30px}
+.controls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:17px}
+.control{width:54px;height:54px;border-radius:18px;background:#ffffff12;border:1px solid var(--border);font-size:21px}
+.control.off{background:#76263b}
+.control.end{background:#ed3455;width:65px}
+.hidden{display:none!important}
+footer{text-align:center;color:#666b8d;font-size:12px;padding:20px 0}
+@media(max-width:360px){h1{font-size:31px}.panel{padding:14px}.app{padding-left:12px;padding-right:12px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo"><div class="logo-icon">◉</div> Q-FACE</div>
+  <div class="pill">VIDEO · AUDIO</div>
+</header>
+
+<h1>Близо, дори<br>отдалеч. ✨</h1>
+<p class="sub">Създай разговор и изпрати линка на приятел. Работи през браузъра на iPhone и Android.</p>
+
+<div class="panel">
+  <div class="status"><span class="dot" id="dot"></span><span id="status">Свързване...</span></div>
+  <label class="label" for="myId">Твоят ID</label>
+  <input id="myId" readonly placeholder="Изчакване на връзка...">
+  <div class="actions">
+    <button class="btn secondary" id="copyBtn">🔗 Копирай линк</button>
+    <button class="btn secondary" id="shareBtn">↗ Сподели</button>
+  </div>
+  <p class="small">Изпрати линка на човека, с когото искаш да говориш.</p>
+</div>
+
+<div class="panel">
+  <label class="label" for="remoteId">ID на приятеля или покана от линка</label>
+  <input id="remoteId" placeholder="Постави ID тук" autocomplete="off">
+  <div class="actions">
+    <button class="btn primary" id="videoBtn">📹 Видеоразговор</button>
+    <button class="btn secondary" id="audioBtn">🎙️ Само аудио</button>
+  </div>
+  <p id="notice" role="status">Изчакай да се свърже услугата. Разреши камерата и микрофона, когато браузърът попита.</p>
+</div>
+
+<div class="panel">
+  <div class="video-grid">
+    <div class="video-box">
+      <video id="localVideo" autoplay playsinline muted></video>
+      <div class="placeholder" id="localPlaceholder"><span class="emoji">📷</span><span>Твоята камера</span></div>
+      <div class="video-name">Ти</div>
+    </div>
+    <div class="video-box">
+      <video id="remoteVideo" autoplay playsinline></video>
+      <div class="placeholder" id="remotePlaceholder"><span class="emoji">👤</span><span>Чакаме приятеля</span></div>
+      <div class="video-name">Приятел</div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="control" id="micBtn" title="Микрофон">🎙️</button>
+    <button class="control" id="camBtn" title="Камера">📷</button>
+    <button class="control" id="flipBtn" title="Смени камерата">🔄</button>
+    <button class="control end" id="endBtn" title="Затвори разговора">📞</button>
+  </div>
+</div>
+<footer>Q-FACE · Connect face to face</footer>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  let peer = null, localStream = null, activeCall = null;
+  let micOn = true, camOn = true, facing = "user", audioOnly = false;
+  let pendingCall = null;
+
+  function note(message){ $("notice").textContent = message; }
+  function status(message, online=false){
+    $("status").textContent = message;
+    $("dot").classList.toggle("online", online);
+  }
+  function updateVideo(){
+    $("localPlaceholder").classList.toggle("hidden", !!localStream);
+    $("remotePlaceholder").classList.toggle("hidden", !!$("remoteVideo").srcObject);
+  }
+  function stopStream(stream){
+    if(stream) stream.getTracks().forEach(track => track.stop());
+  }
+
+  async function getMedia(audioOnlyMode){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      throw new Error("Камерата и микрофонът изискват HTTPS. Отвори сайта през GitHub Pages.");
+    }
+    return navigator.mediaDevices.getUserMedia({
+      audio:true,
+      video:audioOnlyMode ? false : {facingMode:facing}
+    });
+  }
+
+  function clearCall(){
+    if(activeCall){
+      try{activeCall.close();}catch(e){}
+      activeCall = null;
+    }
+    if(pendingCall){
+      try{pendingCall.close();}catch(e){}
+      pendingCall = null;
+    }
+    stopStream(localStream);
+    localStream = null;
+    $("localVideo").srcObject = null;
+    $("remoteVideo").srcObject = null;
+    micOn = true;
+    camOn = true;
+    audioOnly = false;
+    $("micBtn").classList.remove("off");
+    $("camBtn").classList.remove("off");
+    updateVideo();
+    note("Разговорът е приключен. Можеш да започнеш нов.");
+  }
+
+  function showRemoteStream(stream){
+    $("remoteVideo").srcObject = stream;
+    $("remoteVideo").play().catch(()=>{});
+    updateVideo();
+    status("В разговор", true);
+    note("Свързано! Приятен разговор ❤️");
+  }
+
+  function attachCall(call){
+    activeCall = call;
+    call.on("stream", showRemoteStream);
+    call.on("close", () => {
+      if(activeCall === call) clearCall();
+    });
+    call.on("error", err => {
+      note("Грешка при разговора: " + (err.message || "опитай отново"));
+    });
+  }
+
+  async function answerIncoming(call){
+    if(activeCall || pendingCall){
+      call.close();
+      return;
+    }
+    pendingCall = call;
+    const mode = call.metadata && call.metadata.mode;
+    const onlyAudio = mode === "audio";
+    const accepted = window.confirm(
+      (onlyAudio ? "Входящ аудиоразговор" : "Входящ видеоразговор") +
+      ". Натисни OK, за да отговориш."
+    );
+    if(!accepted){
+      call.close();
+      pendingCall = null;
+      return;
+    }
+    try{
+      audioOnly = onlyAudio;
+      localStream = await getMedia(onlyAudio);
+      $("localVideo").srcObject = localStream;
+      $("localVideo").play().catch(()=>{});
+      updateVideo();
+      call.answer(localStream);
+      pendingCall = null;
+      attachCall(call);
+    }catch(err){
+      call.close();
+      pendingCall = null;
+      note("Неуспешен достъп до камерата или микрофона: " + err.message);
+    }
+  }
+
+  function initPeer(){
+    if(peer) return;
+    if(typeof Peer === "undefined"){
+      status("Услугата не се зареди");
+      note("Не успяхме да заредим PeerJS. Провери интернет връзката и презареди страницата.");
+      return;
+    }
+    peer = new Peer();
+    peer.on("open", id => {
+      $("myId").value = id;
+      status("Готов за свързване", true);
+      const params = new URLSearchParams(location.search);
+      const inviteId = params.get("peer");
+      if(inviteId && inviteId !== id){
+        $("remoteId").value = inviteId;
+        note("Получена е покана. Натисни Видеоразговор или Само аудио, за да се обадиш.");
+      }else{
+        note("Изпрати своя линк на приятел. За разговор и двамата трябва да имате интернет.");
+      }
+    });
+    peer.on("call", answerIncoming);
+    peer.on("error", err => {
+      status("Проблем с връзката");
+      note("Грешка: " + (err.message || "неуспешна връзка") + ". Опитай да презаредиш страницата.");
+    });
+    peer.on("disconnected", () => status("Връзката прекъсна"));
+  }
+
+  async function startCall(mode){
+    if(!peer || !peer.open){
+      note("Изчакай услугата да се свърже.");
+      return;
+    }
+    const remoteId = $("remoteId").value.trim();
+    if(!remoteId){
+      note("Първо постави ID на приятеля си или отвори неговата покана.");
+      return;
+    }
+    if(remoteId === peer.id){
+      note("Не можеш да се обадиш на собствения си ID.");
+      return;
+    }
+    if(activeCall || pendingCall) clearCall();
+    try{
+      audioOnly = mode === "audio";
+      note("Искаме разрешение за камерата и микрофона...");
+      localStream = await getMedia(audioOnly);
+      $("localVideo").srcObject = localStream;
+      $("localVideo").play().catch(()=>{});
+      updateVideo();
+      note("Обаждане... изчакай другият човек да отговори.");
+      const call = peer.call(remoteId, localStream, {metadata:{mode}});
+      if(!call) throw new Error("Не успяхме да започнем обаждането.");
+      attachCall(call);
+    }catch(err){
+      stopStream(localStream);
+      localStream = null;
+      $("localVideo").srcObject = null;
+      updateVideo();
+      note("Неуспешно обаждане: " + err.message);
+    }
+  }
+
+  $("videoBtn").addEventListener("click", () => startCall("video"));
+  $("audioBtn").addEventListener("click", () => startCall("audio"));
+
+  $("copyBtn").addEventListener("click", async () => {
+    if(!peer || !peer.id){
+      note("Изчакай да получиш своя ID.");
+      return;
+    }
+    const url = new URL(location.href);
+    url.search = "?peer=" + encodeURIComponent(peer.id);
+    try{
+      await navigator.clipboard.writeText(url.href);
+      note("Линкът е копиран. Изпрати го на приятеля си.");
+    }catch(e){
+      window.prompt("Копирай този линк:", url.href);
+    }
+  });
+
+  $("shareBtn").addEventListener("click", async () => {
+    if(!peer || !peer.id){
+      note("Изчакай да получиш своя ID.");
+      return;
+    }
+    const url = new URL(location.href);
+    url.search = "?peer=" + encodeURIComponent(peer.id);
+    const data = {title:"Q-FACE", text:"Хайде да се чуем в Q-FACE!", url:url.href};
+    try{
+      if(navigator.share) await navigator.share(data);
+      else{
+        await navigator.clipboard.writeText(url.href);
+        note("Линкът е копиран. Изпрати го на приятеля си.");
+      }
+    }catch(e){
+      if(e.name !== "AbortError") note("Не успяхме да споделим линка. Използвай Копирай линк.");
+    }
+  });
+
+  $("micBtn").addEventListener("click", () => {
+    if(!localStream){note("Първо започни разговор.");return;}
+    micOn = !micOn;
+    localStream.getAudioTracks().forEach(track => track.enabled = micOn);
+    $("micBtn").classList.toggle("off", !micOn);
+    $("micBtn").textContent = micOn ? "🎙️" : "🔇";
+    note(micOn ? "Микрофонът е включен." : "Микрофонът е изключен.");
+  });
+
+  $("camBtn").addEventListener("click", () => {
+    if(!localStream || !localStream.getVideoTracks().length){
+      note("Няма активна видео камера в този разговор.");
+      return;
+    }
+    camOn = !camOn;
+    localStream.getVideoTracks().forEach(track => track.enabled = camOn);
+    $("camBtn").classList.toggle("off", !camOn);
+    $("camBtn").textContent = camOn ? "📷" : "🚫";
+    note(camOn ? "Камерата е включена." : "Камерата е изключена.");
+  });
+
+  $("flipBtn").addEventListener("click", async () => {
+    if(!localStream || !localStream.getVideoTracks().length){
+      note("Започни видеоразговор, за да смениш камерата.");
+      return;
+    }
+    facing = facing === "user" ? "environment" : "user";
+    try{
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio:false, video:{facingMode:{ideal:facing}}
+      });
+      const newTrack = newStream.getVideoTracks()[0];
+      const oldTrack = localStream.getVideoTracks()[0];
+      if(activeCall && activeCall.peerConnection){
+        const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === "video");
+        if(sender) await sender.replaceTrack(newTrack);
+      }
+      if(oldTrack){
+        localStream.removeTrack(oldTrack);
+        oldTrack.stop();
+      }
+      localStream.addTrack(newTrack);
+      $("localVideo").srcObject = localStream;
+      camOn = true;
+      $("camBtn").classList.remove("off");
+      $("camBtn").textContent = "📷";
+      note(facing === "user" ? "Предната камера е включена." : "Задната камера е включена.");
+    }catch(err){
+      facing = facing === "user" ? "environment" : "user";
+      note("Не успяхме да сменим камерата: " + err.message);
+    }
+  });
+
+  $("endBtn").addEventListener("click", clearCall);
+  window.addEventListener("beforeunload", () => {
+    if(activeCall) activeCall.close();
+    if(peer) peer.destroy();
+    stopStream(localStream);
+  });
+
+  initPeer();
+})();
+</script>
+</body>
+</html>
